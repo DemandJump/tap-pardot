@@ -298,7 +298,7 @@ class ChildStream(ComplexBookmarkStream):
         return {"offset": self.get_bookmark("offset")}
 
     def get_records(self, parent_ids):
-        if parent_ids isinstance(parent_ids, list):
+        if isinstance(parent_ids, list):
             final_parent_ids = ",".join([str(x) for x in parent_ids])
         else:
             final_parent_ids = parent_ids
