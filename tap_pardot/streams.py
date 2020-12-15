@@ -298,7 +298,11 @@ class ChildStream(ComplexBookmarkStream):
         return {"offset": self.get_bookmark("offset")}
 
     def get_records(self, parent_ids):
-        params = {self.parent_id_param: ",".join([str(x) for x in parent_ids]), **self.get_params()}
+        if parent_ids isinstance(parent_ids, list):
+            final_parent_ids = ",".join([str(x) for x in parent_ids])
+        else:
+            final_parent_ids = parent_ids
+        params = {self.parent_id_param: final_parent_ids, **self.get_params()}
         data = self.client.post(self.endpoint, **params)
         self.update_bookmark("offset", params.get("offset", 0) + 200)
 
@@ -408,7 +412,7 @@ class Visitors(UpdatedAtReplicationStream):
             "only_identified": "false",
         }
 
-        
+
 class Visits(ChildStream, NoUpdatedAtSortingStream):
     stream_name = "visits"
     data_key = "visit"
