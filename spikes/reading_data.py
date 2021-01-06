@@ -27,19 +27,20 @@ class Client:
 
     describe_map = {"prospectAccount": "prospectAccount/version/{}/do/describe"}
 
-    def __init__(self, creds):
+    def __init__(self, config):
         # Do login
-        self.creds = creds
-        self.login(creds)
+        self.config = config
+        self.creds = {
+            "email": self.config["email"],
+            "password": self.config["password"],
+            "user_key": self.config["user_key"]
+        }
+        self.login(self.creds)
 
     def login(self, creds):
         response = requests.post(
             AUTH_URL,
-            data={
-                "email": creds["email"],
-                "password": creds["password"],
-                "user_key": creds["user_key"],
-            },
+            data=creds,
             params={"format": "json"},
         )
 

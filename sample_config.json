@@ -1,6 +1,14 @@
 {
+  "account_id": 137,
   "email": "my_email@example.com",
   "password": "Password12345@",
   "start_date": "2017-01-01",
-  "user_key": "5a1698a233e73d7c8ccd60d775fbc68a"
+  "user_key": "5a1698a233e73d7c8ccd60d775fbc68a",
+  "daily_limit": 1000,
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "db": 3,
+    "ttl_days": 30
+  }
 }

@@ -1,7 +1,6 @@
 import inspect
-
 import singer
-
+from .client import PardotUserLimitReached
 
 class Stream:
     stream_name = None
@@ -89,13 +88,17 @@ class Stream:
         records_synced = 0
         last_records_synced = -1
 
-        while records_synced != last_records_synced:
-            last_records_synced = records_synced
-            for rec in self.sync_page():
-                records_synced += 1
-                yield rec
-
-        self.post_sync()
+        try:
+            while records_synced != last_records_synced:
+                last_records_synced = records_synced
+                for rec in self.sync_page():
+                    records_synced += 1
+                    yield rec
+        except PardotUserLimitReached:
+            self.post_sync()
+            raise PardotUserLimitReached()
+        except Exception as e:
+            raise Exception(e)
 
 
 class IdReplicationStream(Stream):

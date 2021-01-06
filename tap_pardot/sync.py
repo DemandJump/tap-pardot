@@ -5,6 +5,10 @@ from .streams import STREAM_OBJECTS
 
 LOGGER = singer.get_logger()
 
+import json
+
+
+
 
 def sync(client, config, state, catalog):
     selected_streams = catalog.get_selected_streams(state)

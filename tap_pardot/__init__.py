@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import singer
 from singer import utils
 from singer.catalog import write_catalog
@@ -10,7 +8,7 @@ from .sync import sync
 
 LOGGER = singer.get_logger()
 
-REQUIRED_CONFIG_KEYS = ["start_date", "email", "password", "user_key"]
+REQUIRED_CONFIG_KEYS = ["start_date", "email", "password", "user_key", "daily_limit", "redis"]
 
 
 @utils.handle_top_exception(LOGGER)
