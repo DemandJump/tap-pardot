@@ -64,12 +64,10 @@ class Client:
             "user_key": self.config["user_key"]
         }
         self.api_calls_limit = self.config.get("daily_limit", None)
-        self.redis = redis.StrictRedis(
+        self.redis = redis.Redis(
             host = self.config["redis"]["host"],
             port = self.config["redis"]["port"],
-            db = self.config["redis"]["db"],
-            charset = "utf-8",
-            decode_responses = True
+            db = self.config["redis"]["db"]
         )
         date_today = utils.now().strftime("%Y-%m-%d")
         self.redis_key = f"tap-pardot/{self.config['account_id']}/{date_today}"
