@@ -8,7 +8,7 @@ from .sync import sync
 
 LOGGER = singer.get_logger()
 
-REQUIRED_CONFIG_KEYS = ["start_date", "email", "password", "user_key", "daily_limit", "redis"]
+REQUIRED_CONFIG_KEYS = ["start_date", "end_date", "email", "password", "user_key", "daily_limit", "redis"]
 
 
 @utils.handle_top_exception(LOGGER)

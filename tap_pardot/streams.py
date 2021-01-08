@@ -49,7 +49,7 @@ class Stream:
 
     def post_sync(self):
         """Function to run arbitrary code after a full sync completes."""
-        singer.write_state(self.state)
+        
 
     def get_records(self):
         data = self.client.get(self.endpoint, **self.get_params())
@@ -94,12 +94,14 @@ class Stream:
                 for rec in self.sync_page():
                     records_synced += 1
                     yield rec
-        except PardotUserLimitReached:
+            singer.write_state(self.state)
             self.post_sync()
+        except PardotUserLimitReached:
+            singer.write_state(self.state)
             raise PardotUserLimitReached()
         except Exception as e:
+            singer.write_state(self.state)
             raise Exception(e)
-
 
 class IdReplicationStream(Stream):
     """
@@ -120,6 +122,7 @@ class IdReplicationStream(Stream):
     def get_params(self):
         return {
             "created_after": self.config["start_date"],
+            "created_before": self.config["end_date"],
             "id_greater_than": self.get_bookmark(),
             "sort_by": "id",
             "sort_order": "ascending",
@@ -143,6 +146,7 @@ class UpdatedAtReplicationStream(Stream):
     def get_params(self):
         return {
             "updated_after": self.get_bookmark(),
+            "updated_before": self.config["end_date"],
             "sort_by": "updated_at",
             "sort_order": "ascending",
         }
@@ -154,6 +158,7 @@ class ComplexBookmarkStream(Stream):
     def get_default_start(self, key):
         defaults = {
             "updated_at": self.config["start_date"],
+            "updated_before": self.config["end_date"],
             "last_updated": self.config["start_date"],
             "id": 0,
             "offset": 0,
@@ -213,6 +218,7 @@ class NoUpdatedAtSortingStream(ComplexBookmarkStream):
     def get_params(self):
         return {
             "created_after": self.config["start_date"],
+            "created_before": self.config["end_date"],
             "id_greater_than": self.get_bookmark("id"),
             "sort_by": "id",
             "sort_order": "ascending",
@@ -270,6 +276,7 @@ class UpdatedAtSortByIdReplicationStream(ComplexBookmarkStream):
         return {
             "id_greater_than": self.get_bookmark("id"),
             "updated_after": self.get_bookmark("last_updated"),
+            "updated_before": self.config["end_date"],
             "sort_by": "id",
             "sort_order": "ascending",
         }
@@ -339,18 +346,25 @@ class ChildStream(ComplexBookmarkStream):
             self.client, self.config, self.parent_bookmark, emit=False
         )
 
-        for parent_ids in self.get_parent_ids(parent):
-            records_synced = 0
-            last_records_synced = -1
+        try:
+            for parent_ids in self.get_parent_ids(parent):
+                records_synced = 0
+                last_records_synced = -1
 
-            while records_synced != last_records_synced:
-                last_records_synced = records_synced
-                for rec in self.sync_page(parent_ids):
-                    records_synced += 1
-                    yield rec
-            self.clear_bookmark("offset")
+                while records_synced != last_records_synced:
+                    last_records_synced = records_synced
+                    for rec in self.sync_page(parent_ids):
+                        records_synced += 1
+                        yield rec
+                self.clear_bookmark("offset")
 
-        self.post_sync()
+            self.post_sync()
+        except PardotUserLimitReached:
+            singer.write_state(self.state)
+            raise PardotUserLimitReached()
+        except Exception as e:
+            singer.write_state(self.state)
+            raise Exception(e)
 
 
 class EmailClicks(IdReplicationStream):
@@ -389,7 +403,7 @@ class Opportunities(NoUpdatedAtSortingStream):
     stream_name = "opportunities"
     data_key = "opportunity"
     endpoint = "opportunity"
-
+    
     is_dynamic = False
 
 
@@ -411,6 +425,7 @@ class Visitors(UpdatedAtReplicationStream):
     def get_params(self):
         return {
             "updated_after": self.get_bookmark(),
+            "updated_before": self.config["end_date"],
             "sort_by": "updated_at",
             "sort_order": "ascending",
             "only_identified": "false",
@@ -473,8 +488,8 @@ class ListMemberships(ChildStream, NoUpdatedAtSortingStream):
         return {
             # Even though we can't sort by updated_at, we can
             # filter by updated_after
-            "updated_after": self.get_bookmark("updated_at")
-            or self.config["start_date"],
+            "updated_after": self.get_bookmark("updated_at") or self.config["start_date"],
+            "updated_before": self.config["end_date"],
             "id_greater_than": self.get_bookmark("id") or 0,
             "sort_by": "id",
             "sort_order": "ascending",

@@ -64,20 +64,30 @@ class Client:
             "user_key": self.config["user_key"]
         }
         self.api_calls_limit = self.config.get("daily_limit", None)
-        self.redis = redis.Redis(
+        self.redis = redis.StrictRedis(
             host = self.config["redis"]["host"],
             port = self.config["redis"]["port"],
-            db = self.config["redis"]["db"]
+            db = self.config["redis"]["db"],
+            charset = "utf-8",
+            decode_responses = True
         )
         date_today = utils.now().strftime("%Y-%m-%d")
         self.redis_key = f"tap-pardot/{self.config['account_id']}/{date_today}"
-        num_api_calls_made = self.redis.get(self.redis_key)
-        if not num_api_calls_made:
+        
+        curr_api_calls_made = self.redis.get(self.redis_key)
+        if not curr_api_calls_made:
             self.redis.set(
                 name = self.redis_key,
                 value = 0,
                 ex = timedelta(days = self.config["redis"].get("ttl_days", 30))
             )
+            num_api_calls_made = 0
+        else:
+            num_api_calls_made = int(curr_api_calls_made)
+        
+        if self.api_calls_limit and num_api_calls_made >= self.api_calls_limit:
+            raise PardotUserLimitReached()
+        
         self.login()
 
     def login(self):
@@ -156,6 +166,10 @@ class Client:
                     )
                     content = response.json()
                     self.redis.incr(self.redis_key)
+                
+                if error_code == 122:
+                    raise PardotUserLimitReached()
+            
             else:
                 self.redis.incr(self.redis_key)
 
